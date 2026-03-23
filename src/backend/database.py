@@ -121,14 +121,14 @@ initial_activities = {
         "participants": ["james@mergington.edu", "benjamin@mergington.edu"]
     },
     "漫画狂热者": {
-        "description": "探索日本漫画（图像小说）中最有趣角色的精彩故事。",
-        "schedule": "Tuesdays, 7:00 PM - 8:00 PM",
+        "description": "热血开场！一起追随日本漫画（图像小说）里的高光角色，解锁反转剧情与名场面，聊你心中的本命角色！",
+        "schedule": "Tuesdays, 5:00 PM - 6:00 PM",
         "schedule_details": {
             "days": ["Tuesday"],
-            "start_time": "19:00",
-            "end_time": "20:00"
+            "start_time": "17:00",
+            "end_time": "18:00"
         },
-        "max_participants": 15,
+        "max_participants": 25,
         "participants": []
     },
     "Debate Team": {
