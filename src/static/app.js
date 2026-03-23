@@ -40,6 +40,22 @@ document.addEventListener("DOMContentLoaded", () => {
   let searchQuery = "";
   let currentDay = "";
   let currentTimeRange = "";
+  let currentView = "card"; // "card" or "calendar"
+
+  // Calendar view constants
+  const CALENDAR_START_HOUR = 6; // 6:00 AM
+  const CALENDAR_END_HOUR = 20; // 8:00 PM
+  const PIXELS_PER_HOUR = 60;
+  const MIN_EVENT_HEIGHT = 18; // minimum px height for short events
+  const DAYS_OF_WEEK = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
 
   // Authentication state
   let currentUser = null;
@@ -457,6 +473,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Check if there are any results
     if (Object.keys(filteredActivities).length === 0) {
+      activitiesList.classList.remove("calendar-mode");
       activitiesList.innerHTML = `
         <div class="no-results">
           <h4>No activities found</h4>
@@ -466,10 +483,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Display filtered activities
-    Object.entries(filteredActivities).forEach(([name, details]) => {
-      renderActivityCard(name, details);
-    });
+    // Display filtered activities in the chosen view
+    if (currentView === "calendar") {
+      activitiesList.classList.add("calendar-mode");
+      activitiesList.appendChild(renderCalendarView(filteredActivities));
+    } else {
+      activitiesList.classList.remove("calendar-mode");
+      Object.entries(filteredActivities).forEach(([name, details]) => {
+        renderActivityCard(name, details);
+      });
+    }
   }
 
   // Function to render a single activity card
@@ -860,6 +883,201 @@ document.addEventListener("DOMContentLoaded", () => {
     setDayFilter,
     setTimeRangeFilter,
   };
+
+  // ---- View toggle ----
+  const cardViewBtn = document.getElementById("card-view-btn");
+  const calendarViewBtn = document.getElementById("calendar-view-btn");
+
+  cardViewBtn.addEventListener("click", () => {
+    currentView = "card";
+    cardViewBtn.classList.add("active");
+    calendarViewBtn.classList.remove("active");
+    displayFilteredActivities();
+  });
+
+  calendarViewBtn.addEventListener("click", () => {
+    currentView = "calendar";
+    calendarViewBtn.classList.add("active");
+    cardViewBtn.classList.remove("active");
+    displayFilteredActivities();
+  });
+
+  // ---- Calendar helpers ----
+
+  // Convert a 24-hour integer hour to a readable AM/PM label
+  function formatHourLabel(hour) {
+    if (hour < 12) return `${hour} AM`;
+    if (hour === 12) return "12 PM";
+    return `${hour - 12} PM`;
+  }
+
+  // Assign columns to overlapping activities within a single day
+  function layoutActivitiesInDay(activities) {
+    if (activities.length === 0) return;
+    activities.sort(
+      (a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes
+    );
+
+    // Greedy column assignment: each column tracks the end time of its last event
+    const colEnds = [];
+    for (const act of activities) {
+      let col = -1;
+      for (let i = 0; i < colEnds.length; i++) {
+        if (colEnds[i] <= act.startMinutes) {
+          col = i;
+          colEnds[i] = act.endMinutes;
+          break;
+        }
+      }
+      if (col === -1) {
+        col = colEnds.length;
+        colEnds.push(act.endMinutes);
+      }
+      act.col = col;
+    }
+
+    // Count how many activities overlap with each activity (including itself)
+    // so we can compute each activity's share of the column width
+    for (const act of activities) {
+      let concurrent = 0;
+      for (const other of activities) {
+        if (
+          other.startMinutes < act.endMinutes &&
+          other.endMinutes > act.startMinutes
+        ) {
+          concurrent++;
+        }
+      }
+      act.totalCols = Math.max(concurrent, act.col + 1);
+    }
+  }
+
+  // Render the full calendar view and return the DOM element
+  function renderCalendarView(filteredActivities) {
+    const totalHours = CALENDAR_END_HOUR - CALENDAR_START_HOUR;
+    const calendarHeight = totalHours * PIXELS_PER_HOUR;
+
+    // Organise activities by day
+    const dayActivities = {};
+    DAYS_OF_WEEK.forEach((day) => (dayActivities[day] = []));
+
+    Object.entries(filteredActivities).forEach(([name, details]) => {
+      if (!details.schedule_details) return;
+      const [startH, startM] = details.schedule_details.start_time
+        .split(":")
+        .map(Number);
+      const [endH, endM] = details.schedule_details.end_time
+        .split(":")
+        .map(Number);
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+
+      const activityType = getActivityType(name, details.description);
+      const typeInfo = activityTypes[activityType];
+
+      details.schedule_details.days.forEach((day) => {
+        if (dayActivities[day]) {
+          dayActivities[day].push({
+            name,
+            details,
+            startMinutes,
+            endMinutes,
+            typeInfo,
+          });
+        }
+      });
+    });
+
+    // Apply column layout for each day
+    DAYS_OF_WEEK.forEach((day) => layoutActivitiesInDay(dayActivities[day]));
+
+    // Build time-axis labels HTML
+    let timeLabelsHtml = "";
+    for (let h = CALENDAR_START_HOUR; h <= CALENDAR_END_HOUR; h++) {
+      const top = (h - CALENDAR_START_HOUR) * PIXELS_PER_HOUR;
+      const label = formatHourLabel(h);
+      timeLabelsHtml += `<div class="cal-time-label" style="top:${top}px">${label}</div>`;
+    }
+
+    // Build hour-grid lines HTML (reused in every day column)
+    let hourLinesHtml = "";
+    for (let h = 0; h <= totalHours; h++) {
+      hourLinesHtml += `<div class="cal-hour-line" style="top:${h * PIXELS_PER_HOUR}px"></div>`;
+    }
+
+    // Build day columns HTML
+    let dayColumnsHtml = "";
+    DAYS_OF_WEEK.forEach((day) => {
+      const acts = dayActivities[day];
+      let eventsHtml = "";
+
+      acts.forEach((act) => {
+        const startOffset = act.startMinutes - CALENDAR_START_HOUR * 60;
+        const endOffset = act.endMinutes - CALENDAR_START_HOUR * 60;
+        const top = Math.max(0, (startOffset * PIXELS_PER_HOUR) / 60);
+        const height = Math.max(
+          MIN_EVENT_HEIGHT,
+          ((endOffset - startOffset) * PIXELS_PER_HOUR) / 60
+        );
+
+        const widthPct = 100 / act.totalCols;
+        const leftPct = (act.col / act.totalCols) * 100;
+
+        const enrolled = act.details.participants.length;
+        const max = act.details.max_participants;
+        const formattedSched = formatSchedule(act.details);
+
+        // Position tooltip to the left for the last two day columns (Fri/Sat)
+        // to avoid it going off-screen to the right
+        const dayIndex = DAYS_OF_WEEK.indexOf(day);
+        const tooltipClass =
+          dayIndex >= 5 ? "cal-event-tooltip tooltip-left" : "cal-event-tooltip";
+
+        eventsHtml += `
+          <div class="cal-event"
+               style="top:${top}px; height:${height}px; left:calc(${leftPct}% + 1px); width:calc(${widthPct}% - 2px); background-color:${act.typeInfo.color}; border-color:${act.typeInfo.textColor}; color:${act.typeInfo.textColor}">
+            <div class="cal-event-content">
+              <div class="cal-event-name">${act.name}</div>
+              <div class="cal-event-enrollment">${enrolled}/${max}</div>
+            </div>
+            <div class="${tooltipClass}">
+              <strong>${act.name}</strong><br>
+              ${act.details.description}<br>
+              <em>${formattedSched}</em><br>
+              Enrolled: ${enrolled}/${max}
+            </div>
+          </div>
+        `;
+      });
+
+      dayColumnsHtml += `
+        <div class="cal-day-col">
+          <div class="cal-day-header">${day.substring(0, 3)}</div>
+          <div class="cal-day-body" style="height:${calendarHeight}px">
+            ${hourLinesHtml}
+            ${eventsHtml}
+          </div>
+        </div>
+      `;
+    });
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "calendar-wrapper";
+    wrapper.innerHTML = `
+      <div class="cal-grid">
+        <div class="cal-time-axis">
+          <div class="cal-day-header"></div>
+          <div class="cal-time-labels" style="height:${calendarHeight}px">
+            ${timeLabelsHtml}
+          </div>
+        </div>
+        <div class="cal-days">
+          ${dayColumnsHtml}
+        </div>
+      </div>
+    `;
+    return wrapper;
+  }
 
   // Initialize app
   checkAuthentication();
