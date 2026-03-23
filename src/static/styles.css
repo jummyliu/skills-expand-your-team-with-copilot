@@ -148,6 +148,11 @@ section h3 {
   width: 100%;
 }
 
+#activities-list.calendar-mode {
+  display: block;
+  gap: 0;
+}
+
 .activity-card {
   padding: 12px;
   border: 1px solid var(--border);
@@ -727,4 +732,177 @@ button {
 
 #logout-button:hover {
   background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* View Toggle Bar */
+.view-toggle-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.view-toggle-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.view-toggle-btn.active {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+
+/* Calendar View */
+.calendar-wrapper {
+  overflow-x: auto;
+  background: var(--surface);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.calendar-grid {
+  display: flex;
+  min-width: 600px;
+}
+
+/* Time label column */
+.calendar-time-col {
+  width: 52px;
+  flex-shrink: 0;
+}
+
+.calendar-time-col-header {
+  height: 36px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.calendar-time-slots {
+  position: relative;
+  border-right: 1px solid var(--border);
+}
+
+.calendar-time-label {
+  position: absolute;
+  right: 6px;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+/* Day columns */
+.calendar-days-row {
+  display: flex;
+  flex: 1;
+}
+
+.calendar-day-col {
+  flex: 1;
+  border-right: 1px solid var(--border);
+  min-width: 80px;
+}
+
+.calendar-day-col:last-child {
+  border-right: none;
+}
+
+.calendar-day-header {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.8rem;
+  background: var(--primary);
+  color: var(--primary-text);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.calendar-day-body {
+  position: relative;
+}
+
+/* Horizontal hour separator lines */
+.calendar-hour-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--border-light);
+  pointer-events: none;
+}
+
+/* Activity event block */
+.calendar-event {
+  position: absolute;
+  border-radius: 4px;
+  padding: 3px 5px;
+  overflow: hidden;
+  cursor: pointer;
+  font-size: 0.7rem;
+  border-left: 3px solid;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s, opacity 0.2s;
+  z-index: 1;
+}
+
+.calendar-event:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 5;
+  opacity: 0.95;
+}
+
+.calendar-event-name {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.calendar-event-enrollment {
+  font-size: 0.65rem;
+  opacity: 0.85;
+  margin-top: 1px;
+}
+
+/* Calendar hover tooltip */
+.calendar-tooltip {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  z-index: 1000;
+  max-width: 240px;
+  pointer-events: none;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  display: none;
+}
+
+.calendar-tooltip.visible {
+  display: block;
+}
+
+.calendar-tooltip strong {
+  color: var(--primary);
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
 }
