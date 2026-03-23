@@ -568,6 +568,22 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `
         }
+        <div class="share-container">
+          <button class="share-button" aria-label="Share activity" title="Share this activity">
+            <span>📤</span> Share
+          </button>
+          <div class="share-menu hidden">
+            <button class="share-option copy-link-button" aria-label="Copy link">
+              🔗 Copy Link
+            </button>
+            <a class="share-option twitter-share-button" target="_blank" rel="noopener noreferrer" aria-label="Share on X (Twitter)">
+              𝕏 Share on X
+            </a>
+            <a class="share-option whatsapp-share-button" target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp">
+              💬 WhatsApp
+            </a>
+          </div>
+        </div>
       </div>
     `;
 
@@ -587,8 +603,79 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // Set up share button functionality
+    setupShareButton(activityCard, name, details);
+
     activitiesList.appendChild(activityCard);
   }
+
+  // Set up share button for an activity card
+  function setupShareButton(card, activityName, details) {
+    const shareButton = card.querySelector(".share-button");
+    const shareMenu = card.querySelector(".share-menu");
+    const copyLinkButton = card.querySelector(".copy-link-button");
+    const twitterButton = card.querySelector(".twitter-share-button");
+    const whatsappButton = card.querySelector(".whatsapp-share-button");
+
+    // Build a shareable URL with the activity name as a query parameter
+    const shareUrl =
+      window.location.origin +
+      window.location.pathname +
+      "?activity=" +
+      encodeURIComponent(activityName);
+    const shareText =
+      "Check out this activity at Mergington High School: " +
+      activityName +
+      " - " +
+      details.description;
+
+    // Set href for Twitter share
+    twitterButton.href =
+      "https://twitter.com/intent/tweet?text=" +
+      encodeURIComponent(shareText) +
+      "&url=" +
+      encodeURIComponent(shareUrl);
+
+    // Set href for WhatsApp share
+    whatsappButton.href =
+      "https://wa.me/?text=" +
+      encodeURIComponent(shareText + " " + shareUrl);
+
+    // Toggle share menu visibility
+    shareButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isHidden = shareMenu.classList.contains("hidden");
+      // Close all other open share menus
+      document.querySelectorAll(".share-menu").forEach((menu) => {
+        menu.classList.add("hidden");
+      });
+      if (isHidden) {
+        shareMenu.classList.remove("hidden");
+      }
+    });
+
+    // Copy link to clipboard
+    copyLinkButton.addEventListener("click", () => {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        copyLinkButton.textContent = "✅ Copied!";
+        setTimeout(() => {
+          copyLinkButton.textContent = "🔗 Copy Link";
+        }, 2000);
+      }).catch(() => {
+        copyLinkButton.textContent = "❌ Failed to copy";
+        setTimeout(() => {
+          copyLinkButton.textContent = "🔗 Copy Link";
+        }, 2000);
+      });
+    });
+  }
+
+  // Close share menus when clicking outside
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".share-menu").forEach((menu) => {
+      menu.classList.add("hidden");
+    });
+  });
 
   // Event listeners for search and filter
   searchInput.addEventListener("input", (event) => {
